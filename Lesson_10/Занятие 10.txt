@@ -1,0 +1,57 @@
+Формирование скользящих окон в SQL
+
+Синтаксис:
+avg() over([PARTITION BY ... ]
+		   [ORDER BY] ...
+		   ROWS BETWEEN X AND Y
+		  )
+		  
+X и Y могут принимать следующие значения:
+-	CURRENT ROW (текущая строка) 
+-	N PRECEDING (N предыдущих строк, где N - число или UNBOUNDED (бесконечность))
+-	N FOLLOWING (N следующих строк, где N - число или UNBOUNDED (бесконечность))
+
+
+Например, необходимо вывести следующую информацию по всем пассажирам:
+	Идентификатор пассажира
+	Имя и фамилию пассажира
+	Номер билета
+	Идентификатор перелёта
+	Класс перелёта
+	Запланированное время и дата отправления
+	Стоимость перелёта
+	Средняя стоимость всех перелётов пассажира
+	Средняя стоимость 3 предыдущих, текущего и 3 последующих перелётов пассажира
+Данные выведем за февраль 2017 года
+	
+------------------------------------------------------------------------------------
+	
+SELECT t.passenger_id
+    ,t.passenger_name 
+    ,tf.ticket_no 
+    ,tf.flight_id 
+    ,tf.fare_conditions 
+    ,f.scheduled_departure
+    ,tf.amount 
+    ,avg(amount) over(PARTITION BY t.passenger_id
+                  ORDER BY tf.ticket_no, f.scheduled_departure
+                  ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
+                  ) AS moving_avg
+  FROM bookings.tickets t 
+  JOIN bookings.ticket_flights tf 
+    ON t.ticket_no = tf.ticket_no 
+  JOIN bookings.flights f 
+    ON tf.flight_id = f.flight_id
+ WHERE 1=1
+   AND f.actual_departure IS NOT NULL
+   AND f.scheduled_departure BETWEEN '2017-02-01' AND '2017-03-01'
+--   AND t.passenger_id = '0115 943192'
+ ORDER BY 1,3
+;
+
+
+-- Выведем следующую информацию:
+-- год, месяц
+-- средняя стоимость проданных билетов за предыдущие 30 дней
+-- средняя стоимость проданных билетов за предыдущие 60 дней
+-- средняя стоимость проданных билетов за предыдущие 365 дней
